@@ -25,7 +25,6 @@ def usage():
         --server        [required] tanium server (ip address or dns name) [required]
         --username      user name to connect to tanium with (defaults to logged in user)
         --password      password to connect to tanium with (will prompt if not provided)
-        --string        unique string to use in deployment action
 
     Example:
         ./tanium_put.py --server 139.181.111.21 --username tanium
@@ -55,8 +54,6 @@ def main(argv):
             creds['username'] = arg
         if opt in ('--password'):
             creds['password'] = arg
-        if opt in ('--string'):
-            string = arg
 
     if 'server' not in creds:
         print("--server parameter required")
@@ -73,11 +70,6 @@ def main(argv):
     if 'password' not in creds:
         creds['password'] = getpass.getpass()
 
-
-    f = open("string.txt", "w")
-    f.write(string)
-    f.close()
-
     tan = tanrest.server(creds)
 
     package = {
@@ -87,12 +79,12 @@ def main(argv):
         'files': [
             {
                 'name': 'test.py',
-                'source': '',
+                'source': 'https://raw.githubusercontent.com/jbagleyjr/sync_repro/main/test.py',
                 'download_seconds': 3600
             },
             {
                 'name': 'time.txt',
-                'source': '',
+                'source': 'https://raw.githubusercontent.com/jbagleyjr/sync_repro/main/time.txt',
                 'download_seconds': 3600
             }
         ],
@@ -113,22 +105,17 @@ def main(argv):
             print('created new package: ' + package["name"] + ' (' + str(resp['data']['id']) + ')')
             package_id = str(resp['data']['id'])
 
-    #package = tan.get_package(package_id)
     while True:
         package_update = tan.req('GET', 'packages/' + str(package_id))
         if package_update:
             sleep(3)
-            #pp(package_update['data']['files'])
             allcached = True
             for package_file in package_update['data']['files']:
-                # pp({
-                #     'name': package_file['name'],
-                #     'cache_status': package_file['file_status'][0]['cache_status'],
-                #     'status': package_file['file_status'][0]['status']
-                # })
                 print(package_file['name'] + ': ' + package_file['file_status'][0]['cache_status'] + ' (' + str(package_file['file_status'][0]['status']) + ')')
                 if package_file['file_status'][0]['status'] != 200:
                     allcached = False
+                else:
+                    print(package_file['name'] + ' hash: ' + package_file['hash'])
 
             if allcached:
                 break
